@@ -66,7 +66,7 @@
       </div>
       <div class="min-w-0 flex-1">
         <div class="flex items-start justify-between gap-4">
-          <h2 id="modal-title" class="text-lg font-black leading-6 text-zinc-950">{title}</h2>
+          <h2 id="modal-title" class="text-lg font-bold leading-6 text-zinc-950">{title}</h2>
           <button class="modal-close" aria-label="Close" onclick={onCancel}>
             <X size={17} />
           </button>

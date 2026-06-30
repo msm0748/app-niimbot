@@ -60,7 +60,7 @@ canvas {
   padding: 0 12px;
   color: #52525b;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -83,7 +83,7 @@ canvas {
   border: 1px solid #d4d4d8;
   background: white;
   color: #27272a;
-  font-weight: 800;
+  font-weight: 650;
   transition:
     transform 120ms ease,
     border-color 120ms ease,
@@ -123,7 +123,7 @@ canvas {
   margin-bottom: 8px;
   color: #52525b;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 650;
 }
 
 .label-input,
@@ -143,14 +143,14 @@ canvas {
   height: 76px;
   padding: 0 22px;
   font-size: 29px;
-  font-weight: 900;
+  font-weight: 650;
 }
 
 .field-control {
   height: 48px;
   padding: 0 14px;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .label-input:focus,
@@ -161,7 +161,7 @@ canvas {
 
 .label-input::placeholder {
   color: #a1a1aa;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .print-button {
@@ -176,7 +176,7 @@ canvas {
   background: #0f766e;
   color: white;
   font-size: 18px;
-  font-weight: 950;
+  font-weight: 600;
   box-shadow: 0 14px 30px rgba(15, 118, 110, 0.22);
   transition:
     transform 120ms ease,
@@ -303,7 +303,7 @@ canvas {
   border-radius: 7px;
   padding: 0 16px;
   font-size: 14px;
-  font-weight: 900;
+  font-weight: 650;
 }
 
 .modal-primary {

@@ -158,11 +158,11 @@
       <header class="flex items-center justify-between gap-6 border-b border-zinc-200/80 px-6 py-5">
         <div class="min-w-0">
           <div class="flex items-center gap-3">
-            <p class="text-[11px] font-black uppercase tracking-[0.22em] text-teal-700">NIIMBOT D11_H</p>
+            <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-teal-700">NIIMBOT D11_H</p>
             <span class="h-1 w-1 rounded-full bg-zinc-300"></span>
             <p class="text-xs font-semibold text-zinc-500">macOS CoreBluetooth</p>
           </div>
-          <h1 class="mt-1 truncate text-[28px] font-black leading-tight text-zinc-950">Label Console</h1>
+          <h1 class="mt-1 truncate text-[28px] font-bold leading-tight text-zinc-950">Label Console</h1>
         </div>
 
         <div class="flex shrink-0 items-center gap-2">
@@ -280,7 +280,7 @@
     <aside class="surface-panel flex min-h-[520px] flex-col px-5 py-5">
       <div class="mb-5 flex items-center justify-between gap-3">
         <div>
-          <h2 class="text-xl font-black text-zinc-950">History</h2>
+          <h2 class="text-xl font-bold text-zinc-950">History</h2>
           <p class="text-xs font-semibold text-zinc-400">{history.length} saved labels</p>
         </div>
         <button
@@ -303,7 +303,7 @@
           {#each history as item (item.text + item.labelSize)}
             <div class="history-row">
               <button class="min-w-0 flex-1 text-left" onclick={() => recall(item)}>
-                <div class="truncate text-base font-black text-zinc-950">{item.text}</div>
+                <div class="truncate text-base font-bold text-zinc-950">{item.text}</div>
                 <div class="mt-1 text-xs font-semibold text-zinc-400">
                   {LABEL_SIZES[item.labelSize].name} · {new Date(item.printedAt).toLocaleString()}
                 </div>
