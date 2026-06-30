@@ -304,7 +304,29 @@ export default function App() {
             </Group>
 
             <Box className="console-grid">
-              <Stack className="print-card" gap="lg">
+              <Stack
+                className="print-card"
+                gap="lg"
+                component="form"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  if (!isComposing) {
+                    void print()
+                  }
+                }}
+                onKeyDownCapture={(event) => {
+                  if (
+                    event.target === inputRef.current &&
+                    event.key === 'Enter' &&
+                    !isComposing &&
+                    !event.nativeEvent.isComposing
+                  ) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    void print()
+                  }
+                }}
+              >
                 {errorMessage ? (
                   <Alert color="red" variant="light" title="Printer error">
                     {errorMessage}
@@ -324,12 +346,6 @@ export default function App() {
                   onChange={(event) => setText(event.currentTarget.value)}
                   onCompositionStart={() => setIsComposing(true)}
                   onCompositionEnd={() => setIsComposing(false)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !isComposing && !event.nativeEvent.isComposing) {
-                      event.preventDefault()
-                      void print()
-                    }
-                  }}
                   size="xl"
                   className="label-input"
                 />
@@ -370,9 +386,9 @@ export default function App() {
                 <Button
                   leftSection={<IconPrinter size={19} />}
                   size="lg"
+                  type="submit"
                   loading={isPrinting}
                   disabled={!normalizedText || isPrinting}
-                  onClick={print}
                   className="print-button"
                 >
                   Print Label
