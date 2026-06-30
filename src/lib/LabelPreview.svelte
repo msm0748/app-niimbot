@@ -29,10 +29,6 @@
   })
 </script>
 
-<div class="label-paper rounded-md border border-zinc-200 p-4 shadow-inner">
-  <canvas
-    bind:this={canvas}
-    class="h-40 w-full rounded bg-white object-contain shadow-sm ring-1 ring-zinc-200"
-    aria-label="Label preview"
-  ></canvas>
+<div class="label-paper">
+  <canvas bind:this={canvas} aria-label="Label preview"></canvas>
 </div>

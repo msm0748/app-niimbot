@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/svelte'
+import { fireEvent, render, screen, waitFor } from '@testing-library/svelte'
 import { describe, expect, it, vi } from 'vitest'
 import App from './App.svelte'
 import Modal from './lib/Modal.svelte'
@@ -27,7 +27,7 @@ describe('App', () => {
     })
 
     const deleteButton = await screen.findByRole('button', { name: 'Delete' })
-    expect(deleteButton).toHaveFocus()
+    await waitFor(() => expect(deleteButton).toHaveFocus())
 
     await fireEvent.keyDown(window, { key: 'Enter' })
     expect(onConfirm).toHaveBeenCalledTimes(1)

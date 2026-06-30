@@ -1,6 +1,21 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte'
-  import { Bluetooth, Check, PlugZap, Printer, RotateCcw, Search, Trash2 } from '@lucide/svelte'
+  import {
+    Button,
+    InlineNotification,
+    NumberInput,
+    Select,
+    SelectItem,
+    Tag,
+    TextInput,
+    Tile,
+  } from 'carbon-components-svelte'
+  import Bluetooth from 'carbon-icons-svelte/lib/Bluetooth.svelte'
+  import Checkmark from 'carbon-icons-svelte/lib/Checkmark.svelte'
+  import Printer from 'carbon-icons-svelte/lib/Printer.svelte'
+  import Renew from 'carbon-icons-svelte/lib/Renew.svelte'
+  import Search from 'carbon-icons-svelte/lib/Search.svelte'
+  import TrashCan from 'carbon-icons-svelte/lib/TrashCan.svelte'
   import LabelPreview from './lib/LabelPreview.svelte'
   import Modal from './lib/Modal.svelte'
   import {
@@ -18,7 +33,7 @@
 
   let text = $state('')
   let labelSize = $state<LabelSize>('12x22')
-  let quantity = $state(1)
+  let quantity = $state<number | null>(1)
   let isComposing = $state(false)
   let isConnecting = $state(false)
   let isScanning = $state(false)
@@ -27,7 +42,7 @@
   let errorMessage = $state('')
   let history = $state<PrintHistoryItem[]>([])
   let scanResults = $state<{ name: string; services: string[]; matched: boolean }[]>([])
-  let textInput: HTMLInputElement
+  let textInput = $state<HTMLInputElement | null>(null)
   let modal = $state<
     | { kind: 'duplicate'; text: string }
     | { kind: 'delete-one'; item: PrintHistoryItem }
@@ -141,7 +156,7 @@
     focusText()
   }
 
-  function clampQuantity(value: number) {
+  function clampQuantity(value: number | null) {
     return Math.min(20, Math.max(1, Math.trunc(value || 1)))
   }
 
@@ -152,175 +167,159 @@
   }
 </script>
 
-<main class="app-shell min-h-screen px-10 py-8">
-  <div class="mx-auto grid max-w-[1220px] grid-cols-[minmax(620px,1fr)_360px] gap-6">
-    <section class="surface-panel overflow-hidden">
-      <header class="flex items-center justify-between gap-6 border-b border-zinc-200/80 px-6 py-5">
-        <div class="min-w-0">
-          <div class="flex items-center gap-3">
-            <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-teal-700">NIIMBOT D11_H</p>
-            <span class="h-1 w-1 rounded-full bg-zinc-300"></span>
-            <p class="text-xs font-semibold text-zinc-500">macOS CoreBluetooth</p>
-          </div>
-          <h1 class="mt-1 truncate text-[28px] font-bold leading-tight text-zinc-950">Label Console</h1>
+<main class="app-shell">
+  <section class="workspace">
+    <div class="main-panel">
+      <header class="app-header">
+        <div class="title-block">
+          <p class="eyebrow">NIIMBOT D11_H</p>
+          <h1>Label Console</h1>
+          <p class="subtitle">macOS CoreBluetooth label printing utility</p>
         </div>
 
-        <div class="flex shrink-0 items-center gap-2">
-          <span class={status.connected ? 'status-pill connected' : 'status-pill'}>
-            {#if status.connected}<Check size={14} />{/if}
+        <div class="connection-actions">
+          <Tag type={status.connected ? 'green' : 'outline'} size="sm">
+            {#if status.connected}<Checkmark size={14} />{/if}
             {status.connected ? status.deviceName || 'Connected' : 'Disconnected'}
-          </span>
-          <button class="control-button primary" onclick={connect} disabled={isConnecting}>
-            {#if isConnecting}
-              <span class="loading loading-spinner loading-xs"></span>
-            {:else}
-              <Bluetooth size={17} />
-            {/if}
-            Connect
-          </button>
-          <button class="control-button" onclick={scanOnly} disabled={isScanning}>
-            {#if isScanning}
-              <span class="loading loading-spinner loading-xs"></span>
-            {:else}
-              <Search size={17} />
-            {/if}
-            Scan
-          </button>
+          </Tag>
+          <Button size="field" kind="primary" icon={Bluetooth} disabled={isConnecting} onclick={connect}>
+            {isConnecting ? 'Connecting' : 'Connect'}
+          </Button>
+          <Button size="field" kind="secondary" icon={Search} disabled={isScanning} onclick={scanOnly}>
+            {isScanning ? 'Scanning' : 'Scan'}
+          </Button>
         </div>
       </header>
 
-      <div class="grid grid-cols-[minmax(0,1fr)_300px] gap-6 px-6 py-6">
-        <div class="space-y-5">
-          <label class="block">
-            <span class="field-label">Text</span>
-            <input
-              bind:this={textInput}
-              bind:value={text}
-              class="label-input"
-              placeholder="라벨 이름"
-              onkeydown={onTextKeydown}
+      <div class="console-grid">
+        <Tile class="print-card">
+          <div class="form-stack">
+            <div
               oncompositionstart={() => (isComposing = true)}
               oncompositionend={() => (isComposing = false)}
-            />
-          </label>
-
-          <div class="grid grid-cols-[1fr_150px] gap-4">
-            <label class="block">
-              <span class="field-label">Label size</span>
-              <select bind:value={labelSize} class="field-control">
-                {#each Object.values(LABEL_SIZES) as size}
-                  <option value={size.id}>{size.name}</option>
-                {/each}
-              </select>
-            </label>
-
-            <label class="block">
-              <span class="field-label">Quantity</span>
-              <input
-                bind:value={quantity}
-                class="field-control"
-                type="number"
-                min="1"
-                max="20"
-                onblur={() => (quantity = clampQuantity(quantity))}
+            >
+              <TextInput
+                bind:value={text}
+                bind:ref={textInput}
+                size="xl"
+                labelText="Text"
+                placeholder="라벨 이름"
+                on:keydown={onTextKeydown}
               />
-            </label>
-          </div>
-
-          {#if errorMessage}
-            <div class="alert alert-error py-3 text-sm">
-              <PlugZap size={17} />
-              <span>{errorMessage}</span>
             </div>
-          {/if}
 
-          {#if scanResults.length > 0}
-            <div class="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-left text-xs text-zinc-600">
-              <div class="mb-2 font-bold text-zinc-900">Scan results</div>
-              <div class="max-h-28 space-y-1 overflow-auto">
-                {#each scanResults as item}
-                  <div>
-                    <span class={item.matched ? 'font-bold text-teal-700' : 'font-medium'}>
-                      {item.name}
-                    </span>
-                    {#if item.services.length > 0}
-                      <span class="text-zinc-400"> · {item.services.join(', ')}</span>
-                    {/if}
-                  </div>
+            <div class="field-grid">
+              <Select bind:selected={labelSize} labelText="Label size" size="xl">
+                {#each Object.values(LABEL_SIZES) as size}
+                  <SelectItem value={size.id} text={size.name} />
                 {/each}
-              </div>
-            </div>
-          {/if}
+              </Select>
 
-          <button class="print-button" onclick={print} disabled={!canPrint}>
-            {#if isPrinting}
-              <span class="loading loading-spinner loading-sm"></span>
-            {:else}
-              <Printer size={20} />
+              <NumberInput
+                bind:value={quantity}
+                labelText="Quantity"
+                min={1}
+                max={20}
+                step={1}
+                size="xl"
+                on:blur={() => (quantity = clampQuantity(quantity))}
+              />
+            </div>
+
+            {#if errorMessage}
+              <InlineNotification
+                kind="error"
+                lowContrast
+                title="Printer error"
+                subtitle={errorMessage}
+                hideCloseButton
+              />
             {/if}
-            Print Label
-          </button>
-        </div>
 
-        <aside class="preview-column">
-          <div class="mb-3 flex items-end justify-between">
+            {#if scanResults.length > 0}
+              <div class="scan-panel">
+                <div class="scan-title">Scan results</div>
+                <div class="scan-list">
+                  {#each scanResults as item}
+                    <div class:matched={item.matched} class="scan-item">
+                      <span>{item.name}</span>
+                      {#if item.services.length > 0}
+                        <small>{item.services.join(', ')}</small>
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
+              </div>
+            {/if}
+
+            <Button
+              class="print-action"
+              size="xl"
+              kind="primary"
+              icon={Printer}
+              disabled={!canPrint}
+              onclick={print}
+            >
+              {isPrinting ? 'Printing' : 'Print Label'}
+            </Button>
+          </div>
+        </Tile>
+
+        <Tile class="preview-card">
+          <div class="preview-head">
             <div>
-              <p class="field-label mb-0">Preview</p>
-              <p class="text-xs font-semibold text-zinc-400">{LABEL_SIZES[labelSize].name}</p>
+              <p class="section-label">Preview</p>
+              <p class="preview-size">{LABEL_SIZES[labelSize].name}</p>
             </div>
-            <span class="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-bold text-zinc-500">
+            <Tag type="cool-gray" size="sm" inline>
               {LABEL_SIZES[labelSize].width} x {LABEL_SIZES[labelSize].height}px
-            </span>
+            </Tag>
           </div>
           <LabelPreview {text} {labelSize} />
-        </aside>
+        </Tile>
       </div>
-    </section>
+    </div>
 
-    <aside class="surface-panel flex min-h-[520px] flex-col px-5 py-5">
-      <div class="mb-5 flex items-center justify-between gap-3">
+    <Tile class="history-panel">
+      <div class="history-head">
         <div>
-          <h2 class="text-xl font-bold text-zinc-950">History</h2>
-          <p class="text-xs font-semibold text-zinc-400">{history.length} saved labels</p>
+          <h2>History</h2>
+          <p>{history.length} saved labels</p>
         </div>
-        <button
-          class="icon-command"
-          onclick={() => (modal = { kind: 'delete-all' })}
+        <Button
+          kind="ghost"
+          size="small"
+          icon={Renew}
           disabled={history.length === 0}
-          title="Delete all"
+          onclick={() => (modal = { kind: 'delete-all' })}
         >
-          <RotateCcw size={17} />
           Clear
-        </button>
+        </Button>
       </div>
 
-      <div class="min-h-0 flex-1 space-y-2 overflow-auto pr-1">
+      <div class="history-list">
         {#if history.length === 0}
-          <p class="rounded-md border border-dashed border-zinc-300 p-5 text-center text-sm font-semibold text-zinc-400">
-            Printed labels will appear here.
-          </p>
+          <div class="empty-history">Printed labels will appear here.</div>
         {:else}
           {#each history as item (item.text + item.labelSize)}
-            <div class="history-row">
-              <button class="min-w-0 flex-1 text-left" onclick={() => recall(item)}>
-                <div class="truncate text-base font-bold text-zinc-950">{item.text}</div>
-                <div class="mt-1 text-xs font-semibold text-zinc-400">
-                  {LABEL_SIZES[item.labelSize].name} · {new Date(item.printedAt).toLocaleString()}
-                </div>
+            <div class="history-item">
+              <button class="history-recall" onclick={() => recall(item)}>
+                <strong>{item.text}</strong>
+                <span>{LABEL_SIZES[item.labelSize].name} · {new Date(item.printedAt).toLocaleString()}</span>
               </button>
-              <button
-                class="delete-button"
-                aria-label={`Delete ${item.text}`}
+              <Button
+                kind="ghost"
+                size="small"
+                icon={TrashCan}
+                iconDescription={`Delete ${item.text}`}
                 onclick={() => (modal = { kind: 'delete-one', item })}
-              >
-                <Trash2 size={17} />
-              </button>
+              />
             </div>
           {/each}
         {/if}
       </div>
-    </aside>
-  </div>
+    </Tile>
+  </section>
 </main>
 
 {#if modal}
