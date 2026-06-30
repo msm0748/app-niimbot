@@ -41,6 +41,17 @@ describe('App', () => {
     expect(await screen.findByText('Same name already exists')).toBeInTheDocument()
   })
 
+  it('does not enter loading state when printing while disconnected', async () => {
+    render(<App />)
+
+    const input = screen.getByPlaceholderText('라벨 이름')
+    fireEvent.change(input, { target: { value: '문석민' } })
+    fireEvent.click(screen.getByRole('button', { name: /print label/i }))
+
+    expect(await screen.findByText('Printer is not connected. Connect NIIMBOT D11_H first.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /print label/i })).not.toHaveAttribute('data-loading')
+  })
+
   it('focuses modal confirm button and confirms on enter', async () => {
     const onConfirm = vi.fn()
     render(

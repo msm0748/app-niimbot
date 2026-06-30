@@ -68,6 +68,8 @@ const labelOptions = Object.values(LABEL_SIZES).map((size) => ({
 }))
 
 const DUPLICATE_POLICY_STORAGE_KEY = 'niimbot-d11-allow-duplicates'
+const PRINTER_STATUS_TIMEOUT_MS = 2000
+const PRINT_TIMEOUT_MS = 90000
 
 export default function App() {
   const [text, setText] = useState('')
@@ -203,18 +205,34 @@ export default function App() {
       return
     }
 
+    if (!statusRef.current.connected) {
+      setErrorMessage('Printer is not connected. Connect NIIMBOT D11_H first.')
+      setStatusMessage('')
+      setStatus({ connected: false })
+      focusText()
+      return
+    }
+
     setIsPrinting(true)
     setErrorMessage('')
     setStatusMessage('')
     try {
-      const latestStatus = await printer.getStatus()
+      const latestStatus = await withTimeout(
+        printer.getStatus(),
+        PRINTER_STATUS_TIMEOUT_MS,
+        'Could not confirm printer connection. Reconnect NIIMBOT D11_H and try again.',
+      )
       setStatus(latestStatus)
       if (!latestStatus.connected) {
         throw new Error('Printer disconnected. Reconnect NIIMBOT D11_H and try again.')
       }
 
       const bitmap = makeBitmap(normalizedText, labelSize)
-      await printer.printLabel(bitmap, clampQuantity(quantity), labelSize)
+      await withTimeout(
+        printer.printLabel(bitmap, clampQuantity(quantity), labelSize),
+        PRINT_TIMEOUT_MS,
+        'Print request timed out. Reconnect NIIMBOT D11_H and try again.',
+      )
       const nextHistory = upsertHistory(history, normalizedText, labelSize)
       setHistory(nextHistory)
       saveHistory(nextHistory)
@@ -223,7 +241,9 @@ export default function App() {
       focusText()
     } catch (error) {
       setErrorMessage(formatError(error))
-      await refreshStatus()
+      setStatus({ connected: false })
+      setStatusMessage('')
+      focusText()
     } finally {
       setIsPrinting(false)
     }
@@ -546,4 +566,20 @@ function saveDuplicatePolicy(allowDuplicates: boolean) {
   } catch {
     // Storage can be unavailable in tests or restricted webviews.
   }
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error(message)), timeoutMs)
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer)
+        resolve(value)
+      },
+      (error: unknown) => {
+        window.clearTimeout(timer)
+        reject(error)
+      },
+    )
+  })
 }
