@@ -1,11 +1,15 @@
-use std::time::Duration;
+use std::{pin::Pin, time::Duration};
 
 use btleplug::api::{
-  Central, CharPropFlags, Manager as _, Peripheral as _, ScanFilter, WriteType,
+  Central, CharPropFlags, Manager as _, Peripheral as _, ScanFilter, ValueNotification, WriteType,
 };
 use btleplug::platform::{Adapter, Manager, Peripheral};
+use futures::{Stream, StreamExt};
 use serde::Serialize;
-use tokio::time::sleep;
+use tokio::{
+  sync::Mutex,
+  time::{sleep, timeout},
+};
 use uuid::Uuid;
 
 const SCAN_SECONDS: u64 = 10;
@@ -27,6 +31,7 @@ pub struct CoreBluetoothTransport {
   peripheral: Peripheral,
   write_char: btleplug::api::Characteristic,
   notify_char: Option<btleplug::api::Characteristic>,
+  notifications: Mutex<Option<Pin<Box<dyn Stream<Item = ValueNotification> + Send>>>>,
   device_name: String,
 }
 
@@ -123,14 +128,26 @@ impl CoreBluetoothTransport {
       .cloned()
     });
 
-    if let Some(ch) = &notify_char {
-      let _ = peripheral.subscribe(ch).await;
-    }
+    let notifications = if let Some(ch) = &notify_char {
+      peripheral
+        .subscribe(ch)
+        .await
+        .map_err(|error| format!("Could not subscribe to NIIMBOT notifications: {error}"))?;
+      Some(
+        peripheral
+          .notifications()
+          .await
+          .map_err(|error| format!("Could not open NIIMBOT notification stream: {error}"))?,
+      )
+    } else {
+      None
+    };
 
     Ok(Self {
       peripheral,
       write_char,
       notify_char,
+      notifications: Mutex::new(notifications),
       device_name,
     })
   }
@@ -157,10 +174,68 @@ impl CoreBluetoothTransport {
     Ok(())
   }
 
+  pub async fn write_packet_wait(
+    &self,
+    bytes: &[u8],
+    expected_response: u8,
+    label: &str,
+  ) -> Result<NiimbotResponse, String> {
+    self.write_packet(bytes).await?;
+    self.wait_for_response(expected_response, label).await
+  }
+
+  async fn wait_for_response(
+    &self,
+    expected_response: u8,
+    label: &str,
+  ) -> Result<NiimbotResponse, String> {
+    let mut guard = self.notifications.lock().await;
+    let Some(notifications) = guard.as_mut() else {
+      return Err(format!(
+        "{label}: printer notifications are unavailable, so print ACKs cannot be verified."
+      ));
+    };
+
+    let deadline = Duration::from_millis(1800);
+    loop {
+      let next = timeout(deadline, notifications.next())
+        .await
+        .map_err(|_| {
+          format!(
+            "{label}: timed out waiting for printer response 0x{expected_response:02x}."
+          )
+        })?
+        .ok_or_else(|| format!("{label}: printer notification stream closed."))?;
+
+      let Some(response) = parse_niimbot_response(&next.value) else {
+        continue;
+      };
+
+      if response.command == 0xdb {
+        return Err(format!(
+          "{label}: printer returned print error code {}.",
+          response.data.first().copied().unwrap_or_default()
+        ));
+      }
+      if response.command == 0x00 {
+        return Err(format!("{label}: printer reported unsupported command."));
+      }
+      if response.command == expected_response {
+        return Ok(response);
+      }
+    }
+  }
+
   #[allow(dead_code)]
   pub fn has_notify(&self) -> bool {
     self.notify_char.is_some()
   }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NiimbotResponse {
+  pub command: u8,
+  pub data: Vec<u8>,
 }
 
 pub async fn scan_d11h_candidates() -> Result<Vec<DiscoveredPeripheral>, String> {
@@ -265,4 +340,48 @@ fn not_found_message(seen: &[DiscoveredPeripheral]) -> String {
     seen.len(),
     names
   )
+}
+
+fn parse_niimbot_response(bytes: &[u8]) -> Option<NiimbotResponse> {
+  let start = bytes
+    .windows(2)
+    .position(|window| window == [0x55, 0x55])?;
+  let packet = &bytes[start..];
+  if packet.len() < 7 {
+    return None;
+  }
+
+  let command = packet[2];
+  let len = packet[3] as usize;
+  let end = 4 + len + 3;
+  if packet.len() < end {
+    return None;
+  }
+  if packet[4 + len + 1] != 0xaa || packet[4 + len + 2] != 0xaa {
+    return None;
+  }
+
+  let data = packet[4..4 + len].to_vec();
+  let mut checksum = command ^ (len as u8);
+  for byte in &data {
+    checksum ^= *byte;
+  }
+  if checksum != packet[4 + len] {
+    return None;
+  }
+
+  Some(NiimbotResponse { command, data })
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn parses_response_packet() {
+    let packet = [0x55, 0x55, 0x02, 0x01, 0x01, 0x02, 0xaa, 0xaa];
+    let response = parse_niimbot_response(&packet).unwrap();
+    assert_eq!(response.command, 0x02);
+    assert_eq!(response.data, vec![0x01]);
+  }
 }

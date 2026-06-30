@@ -229,7 +229,9 @@ pub async fn print_d11h(
   send_print_init(transport, quantity).await?;
   send_print_page(transport, bitmap, quantity).await?;
   sleep(Duration::from_millis(300)).await;
-  transport.write_packet(&packet(0xf3, &[0x01])).await?;
+  transport
+    .write_packet_wait(&packet(0xf3, &[0x01]), 0xf4, "PrintEnd")
+    .await?;
   Ok(())
 }
 
@@ -237,13 +239,19 @@ async fn send_print_init(
   transport: &mut CoreBluetoothTransport,
   total_pages: u8,
 ) -> Result<(), String> {
-  transport.write_packet(&packet(0x21, &[0x03])).await?;
-  transport.write_packet(&packet(0x23, &[0x01])).await?;
+  transport
+    .write_packet_wait(&packet(0x21, &[0x03]), 0x31, "SetDensity")
+    .await?;
+  transport
+    .write_packet_wait(&packet(0x23, &[0x01]), 0x33, "SetLabelType")
+    .await?;
 
   let mut start = Vec::with_capacity(9);
   start.extend(u16be(total_pages as u16));
   start.extend([0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00]);
-  transport.write_packet(&packet(0x01, &start)).await?;
+  transport
+    .write_packet_wait(&packet(0x01, &start), 0x02, "PrintStart")
+    .await?;
   Ok(())
 }
 
@@ -261,7 +269,9 @@ async fn send_print_page(
   page_size.extend(u16be(0));
   page_size.extend([0x00, 0x00, 0x00]);
   page_size.extend(u16be(0));
-  transport.write_packet(&packet(0x13, &page_size)).await?;
+  transport
+    .write_packet_wait(&packet(0x13, &page_size), 0x14, "SetPageSize")
+    .await?;
 
   for encoded in bitmap.encoded_rows() {
     match encoded {
@@ -305,7 +315,9 @@ async fn send_print_page(
     }
   }
 
-  transport.write_packet(&packet(0xe3, &[0x01])).await?;
+  transport
+    .write_packet_wait(&packet(0xe3, &[0x01]), 0xe4, "PageEnd")
+    .await?;
   Ok(())
 }
 
