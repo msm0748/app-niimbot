@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { X } from '@lucide/svelte'
+  import { onMount, tick } from 'svelte'
+  import { AlertTriangle, X } from '@lucide/svelte'
 
   interface Props {
     title: string
@@ -21,41 +22,70 @@
     onCancel,
   }: Props = $props()
 
+  let confirmButton: HTMLButtonElement
+
+  onMount(async () => {
+    await tick()
+    confirmButton?.focus()
+  })
+
+  function confirm() {
+    if (onConfirm) {
+      onConfirm()
+    } else {
+      onCancel()
+    }
+  }
+
   function onKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape') onCancel()
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      onCancel()
+    }
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      confirm()
+    }
   }
 </script>
 
 <svelte:window onkeydown={onKeydown} />
 
-<button class="fixed inset-0 z-40 cursor-default bg-slate-950/30" aria-label="Close modal" onclick={onCancel}></button>
-<div class="fixed inset-0 z-50 grid place-items-center p-6 pointer-events-none">
-  <dialog
-    open
-    class="pointer-events-auto w-full max-w-sm rounded-lg border border-stone-200 bg-white p-5 text-left shadow-2xl"
+<button class="modal-backdrop" aria-label="Close modal" onclick={onCancel}></button>
+<div class="modal-layer">
+  <div
+    class="modal-card"
+    role="dialog"
     aria-modal="true"
     aria-labelledby="modal-title"
+    tabindex="-1"
   >
-    <div class="flex items-start justify-between gap-4">
-      <div>
-        <h2 id="modal-title" class="text-base font-semibold text-stone-950">{title}</h2>
-        <p class="mt-2 text-sm leading-6 text-stone-600">{message}</p>
+    <div class="flex items-start gap-4">
+      <div class={destructive ? 'modal-icon danger' : 'modal-icon'}>
+        <AlertTriangle size={20} />
       </div>
-      <button class="btn btn-ghost btn-sm btn-square" aria-label="Close" onclick={onCancel}>
-        <X size={17} />
-      </button>
+      <div class="min-w-0 flex-1">
+        <div class="flex items-start justify-between gap-4">
+          <h2 id="modal-title" class="text-lg font-black leading-6 text-zinc-950">{title}</h2>
+          <button class="modal-close" aria-label="Close" onclick={onCancel}>
+            <X size={17} />
+          </button>
+        </div>
+        <p class="mt-2 text-sm leading-6 text-zinc-600">{message}</p>
+      </div>
     </div>
 
-    <div class="mt-5 flex justify-end gap-2">
+    <div class="mt-6 flex justify-end gap-2">
       {#if cancelLabel}
-        <button class="btn btn-ghost btn-sm" onclick={onCancel}>{cancelLabel}</button>
+        <button class="modal-secondary" onclick={onCancel}>{cancelLabel}</button>
       {/if}
       <button
-        class={destructive ? 'btn btn-error btn-sm text-white' : 'btn btn-neutral btn-sm'}
-        onclick={() => (onConfirm ? onConfirm() : onCancel())}
+        bind:this={confirmButton}
+        class={destructive ? 'modal-primary danger' : 'modal-primary'}
+        onclick={confirm}
       >
         {confirmLabel}
       </button>
     </div>
-  </dialog>
+  </div>
 </div>
