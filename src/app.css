@@ -45,6 +45,7 @@ canvas {
   min-width: 0;
   border: 1px solid rgba(39, 48, 44, 0.1);
   background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 28px rgba(27, 37, 33, 0.055);
 }
 
 .main-panel {
@@ -159,8 +160,11 @@ canvas {
 .history-panel {
   display: flex;
   flex-direction: column;
-  min-height: 640px;
+  height: min(640px, calc(100vh - 68px));
+  min-height: 420px;
+  max-height: calc(100vh - 68px);
   padding: 0;
+  overflow: hidden;
 }
 
 .history-head {
@@ -176,6 +180,7 @@ canvas {
 
 .history-list {
   flex: 1;
+  min-height: 0;
   padding: 14px;
 }
 
@@ -204,7 +209,7 @@ canvas {
 .history-item:hover,
 .history-item:focus-visible {
   border-color: rgba(8, 115, 95, 0.36);
-  box-shadow: 0 8px 22px rgba(27, 37, 33, 0.08);
+  box-shadow: 0 4px 12px rgba(27, 37, 33, 0.045);
   outline: none;
   transform: translateY(-1px);
 }
@@ -238,6 +243,8 @@ canvas {
   }
 
   .history-panel {
+    height: auto;
     min-height: 420px;
+    max-height: 540px;
   }
 }

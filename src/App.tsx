@@ -260,7 +260,7 @@ export default function App() {
       <Notifications position="top-center" />
       <Box className="app-shell">
         <Box className="workspace">
-          <Paper className="main-panel" shadow="xl">
+          <Paper className="main-panel">
             <Group justify="space-between" align="flex-start" gap="lg" className="app-header">
               <Stack gap={4}>
                 <Text className="eyebrow">NIIMBOT D11_H</Text>
@@ -430,7 +430,7 @@ export default function App() {
             </Box>
           </Paper>
 
-          <Paper className="history-panel" shadow="xl">
+          <Paper className="history-panel">
             <Group justify="space-between" className="history-head">
               <Stack gap={2}>
                 <Title order={2}>History</Title>
