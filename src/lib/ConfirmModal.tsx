@@ -64,7 +64,13 @@ export default function ConfirmModal({
               {cancelLabel}
             </Button>
           ) : null}
-          <Button ref={confirmRef} autoFocus color={destructive ? 'red' : 'dark'} onClick={onConfirm}>
+          <Button
+            ref={confirmRef}
+            autoFocus
+            data-autofocus
+            color={destructive ? 'red' : 'dark'}
+            onClick={onConfirm}
+          >
             {confirmLabel}
           </Button>
         </Group>

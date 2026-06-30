@@ -10,7 +10,9 @@ describe('App', () => {
 
     expect(screen.getByText('NIIMBOT D11_H')).toBeInTheDocument()
     expect(screen.getByText('Label Console')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /connect/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Connect$/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Disconnect$/ })).toBeDisabled()
+    expect(screen.getByRole('switch', { name: /allow duplicate names/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /print label/i })).toBeDisabled()
     expect(screen.getByText('History')).toBeInTheDocument()
   })

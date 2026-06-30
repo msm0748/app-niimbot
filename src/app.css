@@ -116,6 +116,12 @@ canvas {
   font-weight: 600;
 }
 
+.duplicate-policy {
+  border-color: rgba(39, 48, 44, 0.1);
+  background: #fbfcfb;
+  padding: 12px 14px;
+}
+
 .scan-panel {
   border-color: rgba(8, 115, 95, 0.24);
   background: #f3f8f6;

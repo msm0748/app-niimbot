@@ -11,6 +11,7 @@ import {
   ScrollArea,
   Select,
   Stack,
+  Switch,
   Text,
   TextInput,
   Title,
@@ -66,6 +67,8 @@ const labelOptions = Object.values(LABEL_SIZES).map((size) => ({
   label: size.name,
 }))
 
+const DUPLICATE_POLICY_STORAGE_KEY = 'niimbot-d11-allow-duplicates'
+
 export default function App() {
   const [text, setText] = useState('')
   const [labelSize, setLabelSize] = useState<LabelSize>('12x22')
@@ -79,6 +82,7 @@ export default function App() {
   const [statusMessage, setStatusMessage] = useState('')
   const [history, setHistory] = useState<PrintHistoryItem[]>([])
   const [scanResults, setScanResults] = useState<{ name: string; services: string[]; matched: boolean }[]>([])
+  const [allowDuplicates, setAllowDuplicates] = useState(false)
   const [modal, setModal] = useState<ModalState>(null)
 
   const inputRef = useRef<HTMLInputElement>(null)
@@ -111,6 +115,7 @@ export default function App() {
 
   useEffect(() => {
     setHistory(loadHistory())
+    setAllowDuplicates(loadDuplicatePolicy())
     void refreshStatus()
     focusText()
     const timer = window.setInterval(refreshStatus, 2500)
@@ -193,7 +198,7 @@ export default function App() {
   async function print() {
     if (!normalizedText || isPrinting) return
 
-    if (hasDuplicateText(history, normalizedText)) {
+    if (!allowDuplicates && hasDuplicateText(history, normalizedText)) {
       setModal({ kind: 'duplicate', text: normalizedText })
       return
     }
@@ -274,21 +279,24 @@ export default function App() {
                 >
                   {status.connected ? status.deviceName || 'Connected' : 'Disconnected'}
                 </Badge>
-                {status.connected ? (
-                  <Button
-                    variant="light"
-                    color="red"
-                    leftSection={<IconBluetoothOff size={18} />}
-                    loading={isConnecting}
-                    onClick={disconnect}
-                  >
-                    Disconnect
-                  </Button>
-                ) : (
-                  <Button leftSection={<IconBluetooth size={18} />} loading={isConnecting} onClick={connect}>
-                    Connect
-                  </Button>
-                )}
+                <Button
+                  leftSection={<IconBluetooth size={18} />}
+                  loading={isConnecting && !status.connected}
+                  disabled={status.connected}
+                  onClick={connect}
+                >
+                  Connect
+                </Button>
+                <Button
+                  variant="light"
+                  color="red"
+                  leftSection={<IconBluetoothOff size={18} />}
+                  loading={isConnecting && status.connected}
+                  disabled={!status.connected}
+                  onClick={disconnect}
+                >
+                  Disconnect
+                </Button>
                 <Button variant="default" leftSection={<IconSearch size={18} />} loading={isScanning} onClick={scanOnly}>
                   Scan
                 </Button>
@@ -345,6 +353,19 @@ export default function App() {
                     size="md"
                   />
                 </Group>
+
+                <Paper className="duplicate-policy" withBorder>
+                  <Switch
+                    label="Allow duplicate names"
+                    description="켜면 같은 이름이 기록에 있어도 모달 없이 바로 출력합니다."
+                    checked={allowDuplicates}
+                    onChange={(event) => {
+                      const next = event.currentTarget.checked
+                      setAllowDuplicates(next)
+                      saveDuplicatePolicy(next)
+                    }}
+                  />
+                </Paper>
 
                 <Button
                   leftSection={<IconPrinter size={19} />}
@@ -491,4 +512,22 @@ function formatError(error: unknown) {
   if (typeof error === 'string') return error
   if (error instanceof Error) return error.message
   return 'Unexpected printer error'
+}
+
+function loadDuplicatePolicy() {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem(DUPLICATE_POLICY_STORAGE_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+function saveDuplicatePolicy(allowDuplicates: boolean) {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(DUPLICATE_POLICY_STORAGE_KEY, String(allowDuplicates))
+    }
+  } catch {
+    // Storage can be unavailable in tests or restricted webviews.
+  }
 }
