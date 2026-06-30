@@ -160,6 +160,17 @@ impl CoreBluetoothTransport {
     self.peripheral.is_connected().await.unwrap_or(false)
   }
 
+  pub async fn disconnect(&self) -> Result<(), String> {
+    if self.is_connected().await {
+      self
+        .peripheral
+        .disconnect()
+        .await
+        .map_err(|error| format!("Could not disconnect printer: {error}"))?;
+    }
+    Ok(())
+  }
+
   pub async fn write_packet(&self, bytes: &[u8]) -> Result<(), String> {
     if !self.is_connected().await {
       return Err("Printer disconnected. Reconnect NIIMBOT D11_H and try again.".to_string());

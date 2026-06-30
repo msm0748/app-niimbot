@@ -56,7 +56,7 @@ export function drawLabel(
   ctx.fillStyle = '#000000'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.font = `700 ${fontSize}px "Avenir Next", "Apple SD Gothic Neo", sans-serif`
+  ctx.font = `600 ${fontSize}px "Avenir Next", "Apple SD Gothic Neo", sans-serif`
   ctx.fillText(text, width / 2, height / 2, maxWidth)
 }
 
@@ -72,7 +72,7 @@ export function fitFontSize(
 
   while (low <= high) {
     const mid = Math.floor((low + high) / 2)
-    ctx.font = `700 ${mid}px "Avenir Next", "Apple SD Gothic Neo", sans-serif`
+    ctx.font = `600 ${mid}px "Avenir Next", "Apple SD Gothic Neo", sans-serif`
     const metrics = ctx.measureText(text)
     const actualHeight =
       (metrics.actualBoundingBoxAscent || mid * 0.8) + (metrics.actualBoundingBoxDescent || mid * 0.2)

@@ -8,26 +8,29 @@
     "tauri": "tauri",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
+    "check": "tsc -p tsconfig.app.json && tsc -p tsconfig.node.json",
     "test": "vitest run"
   },
   "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "^7.1.2",
     "@tauri-apps/cli": "^2.11.4",
     "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/svelte": "^5.4.2",
-    "@tsconfig/svelte": "^5.0.8",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^24.13.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
     "jsdom": "^29.1.1",
-    "svelte": "^5.56.3",
-    "svelte-check": "^4.6.0",
     "typescript": "~6.0.2",
     "vite": "^8.1.0",
     "vitest": "^4.1.9"
   },
   "dependencies": {
+    "@mantine/core": "^9.4.1",
+    "@mantine/hooks": "^9.4.1",
+    "@mantine/notifications": "^9.4.1",
+    "@tabler/icons-react": "^3.44.0",
     "@tauri-apps/api": "^2.11.1",
-    "carbon-components-svelte": "^0.109.0",
-    "carbon-icons-svelte": "^13.12.0"
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
   }
 }

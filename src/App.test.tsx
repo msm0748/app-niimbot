@@ -1,11 +1,12 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/svelte'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { MantineProvider } from '@mantine/core'
 import { describe, expect, it, vi } from 'vitest'
-import App from './App.svelte'
-import Modal from './lib/Modal.svelte'
+import App from './App'
+import ConfirmModal from './lib/ConfirmModal'
 
 describe('App', () => {
-  it('renders the printer workflow', async () => {
-    render(App)
+  it('renders the printer workflow', () => {
+    render(<App />)
 
     expect(screen.getByText('NIIMBOT D11_H')).toBeInTheDocument()
     expect(screen.getByText('Label Console')).toBeInTheDocument()
@@ -16,20 +17,25 @@ describe('App', () => {
 
   it('focuses modal confirm button and confirms on enter', async () => {
     const onConfirm = vi.fn()
-    render(Modal, {
-      title: 'Delete history item?',
-      message: 'Delete this item?',
-      confirmLabel: 'Delete',
-      cancelLabel: 'Cancel',
-      destructive: true,
-      onCancel: vi.fn(),
-      onConfirm,
-    })
+    render(
+      <MantineProvider>
+        <ConfirmModal
+          opened
+          title="Delete history item?"
+          message="Delete this item?"
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          destructive
+          onCancel={vi.fn()}
+          onConfirm={onConfirm}
+        />
+      </MantineProvider>,
+    )
 
     const deleteButton = await screen.findByRole('button', { name: 'Delete' })
     await waitFor(() => expect(deleteButton).toHaveFocus())
 
-    await fireEvent.keyDown(window, { key: 'Enter' })
+    fireEvent.keyDown(window, { key: 'Enter' })
     expect(onConfirm).toHaveBeenCalledTimes(1)
   })
 })

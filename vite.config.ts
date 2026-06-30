@@ -1,10 +1,9 @@
 import { defineConfig } from 'vitest/config'
-import { svelte } from '@sveltejs/vite-plugin-svelte'
-import { svelteTesting } from '@testing-library/svelte/vite'
+import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [svelteTesting(), svelte()],
+  plugins: [react()],
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],

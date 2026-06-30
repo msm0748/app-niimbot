@@ -35,21 +35,35 @@ struct PrintPayload {
 
 #[tauri::command]
 async fn printer_status(state: State<'_, PrinterState>) -> Result<PrinterStatus, String> {
-  let guard = state.transport.lock().await;
-  Ok(match guard.as_ref() {
-    Some(transport) => PrinterStatus {
-      connected: transport.is_connected().await,
-      device_name: Some(transport.device_name().to_string()),
-    },
-    None => PrinterStatus {
+  let mut guard = state.transport.lock().await;
+  let Some(transport) = guard.as_ref() else {
+    return Ok(PrinterStatus {
       connected: false,
       device_name: None,
-    },
+    });
+  };
+
+  let device_name = transport.device_name().to_string();
+  let connected = transport.is_connected().await;
+  if !connected {
+    *guard = None;
+  }
+
+  Ok(PrinterStatus {
+    connected,
+    device_name: if connected { Some(device_name) } else { None },
   })
 }
 
 #[tauri::command]
 async fn scan_and_connect(state: State<'_, PrinterState>) -> Result<PrinterStatus, String> {
+  {
+    let guard = state.transport.lock().await;
+    if let Some(transport) = guard.as_ref() {
+      let _ = transport.disconnect().await;
+    }
+  }
+
   let transport = CoreBluetoothTransport::scan_and_connect_d11h().await?;
   let status = PrinterStatus {
     connected: true,
@@ -66,6 +80,20 @@ async fn scan_printers() -> Result<Vec<DiscoveredPeripheral>, String> {
 }
 
 #[tauri::command]
+async fn disconnect_printer(state: State<'_, PrinterState>) -> Result<PrinterStatus, String> {
+  let mut guard = state.transport.lock().await;
+  if let Some(transport) = guard.as_ref() {
+    let _ = transport.disconnect().await;
+  }
+  *guard = None;
+
+  Ok(PrinterStatus {
+    connected: false,
+    device_name: None,
+  })
+}
+
+#[tauri::command]
 async fn print_label(
   state: State<'_, PrinterState>,
   bitmap: PrintPayload,
@@ -79,7 +107,20 @@ async fn print_label(
     .as_mut()
     .ok_or_else(|| "Printer is not connected. Connect NIIMBOT D11_H first.".to_string())?;
 
-  niimbot::print_d11h(transport, &label, quantity).await
+  if !transport.is_connected().await {
+    *guard = None;
+    return Err("Printer disconnected. Reconnect NIIMBOT D11_H and try again.".to_string());
+  }
+
+  match niimbot::print_d11h(transport, &label, quantity).await {
+    Ok(()) => Ok(()),
+    Err(error) => {
+      if !transport.is_connected().await {
+        *guard = None;
+      }
+      Err(error)
+    }
+  }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -90,6 +131,7 @@ pub fn run() {
       printer_status,
       scan_and_connect,
       scan_printers,
+      disconnect_printer,
       print_label
     ])
     .setup(|app| {

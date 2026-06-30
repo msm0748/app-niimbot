@@ -9,6 +9,7 @@ export interface DiscoveredPrinter {
 
 export interface NiimbotPrinter {
   scanAndConnect(): Promise<PrinterStatus>
+  disconnect(): Promise<PrinterStatus>
   scanPrinters(): Promise<DiscoveredPrinter[]>
   getStatus(): Promise<PrinterStatus>
   printLabel(bitmap: BitmapPayload, quantity: number, labelSize: LabelSize): Promise<void>
@@ -21,6 +22,10 @@ export class TauriNiimbotPrinter implements NiimbotPrinter {
 
   async scanPrinters(): Promise<DiscoveredPrinter[]> {
     return invoke<DiscoveredPrinter[]>('scan_printers')
+  }
+
+  async disconnect(): Promise<PrinterStatus> {
+    return invoke<PrinterStatus>('disconnect_printer')
   }
 
   async getStatus(): Promise<PrinterStatus> {
@@ -38,6 +43,10 @@ export class BrowserPreviewPrinter implements NiimbotPrinter {
   }
 
   async getStatus(): Promise<PrinterStatus> {
+    return { connected: false }
+  }
+
+  async disconnect(): Promise<PrinterStatus> {
     return { connected: false }
   }
 

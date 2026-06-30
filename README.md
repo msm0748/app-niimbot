@@ -1,12 +1,14 @@
 # NIIMBOT D11
 
-macOS 전용 NIIMBOT D11_H 라벨 프린터 앱입니다.  
-Tauri + Svelte로 만든 데스크톱 앱이며, Bluetooth 연결은 Web Bluetooth가 아니라 Rust 백엔드에서 macOS CoreBluetooth 계열 BLE 전송으로 처리합니다.
+macOS 전용 NIIMBOT D11_H 라벨 프린터 앱입니다.
+
+Web Bluetooth를 쓰지 않고, Tauri Rust 백엔드에서 macOS CoreBluetooth 계열 BLE 전송을 처리합니다. 프론트엔드는 React + Mantine으로 구성되어 있고, 라벨 입력/미리보기/출력 기록/중복 방지 같은 앱 UI 상태를 담당합니다.
 
 ## 주요 기능
 
-- NIIMBOT D11_H Bluetooth 검색 및 연결
-- 연결 상태 표시
+- NIIMBOT D11_H Bluetooth 검색, 연결, 연결 해제
+- 연결 상태 주기적 확인
+- 프린터 연결이 끊겼을 때 UI 상태 갱신 및 오류 표시
 - 텍스트 라벨 출력
 - 지원 라벨 크기
   - `12 x 22 mm`
@@ -14,23 +16,24 @@ Tauri + Svelte로 만든 데스크톱 앱이며, Bluetooth 연결은 Web Bluetoo
 - 출력 수량 지정
   - 기본값 `1`
   - 최소 `1`, 최대 `20`
-- 출력 성공 후 입력창 초기화 및 포커스 복귀
+- 출력 성공 후 입력창 초기화, 수량 `1` 복귀, 입력창 포커스 복귀
 - Enter 키로 바로 출력
-  - 한글 IME 조합 중 Enter는 출력으로 처리하지 않음
+  - 한글 IME 조합 중 Enter는 출력하지 않음
 - 출력 기록 저장
   - `text`
   - `labelSize`
   - `printedAt`
+- 한국어 ㄱ, ㄴ, ㄷ 순서로 기록 정렬
 - 같은 이름 중복 출력 방지
 - 출력 기록 개별 삭제 / 전체 삭제
 - 삭제 확인 모달
   - Escape 또는 배경 클릭으로 닫기
-  - Enter로 확인 버튼 실행
+  - Enter로 OK/Delete 실행
 
 ## 기술 구조
 
-- Frontend: Svelte 5 + TypeScript + Vite
-- UI: Tailwind CSS + daisyUI + Lucide icons
+- Frontend: React + TypeScript + Vite
+- UI: Mantine + Tabler Icons
 - Desktop: Tauri v2
 - Backend: Rust
 - Bluetooth: `btleplug` macOS CoreBluetooth backend
@@ -38,7 +41,9 @@ Tauri + Svelte로 만든 데스크톱 앱이며, Bluetooth 연결은 Web Bluetoo
 
 핵심 파일:
 
-- Svelte 앱: `src/App.svelte`
+- React 앱: `src/App.tsx`
+- 라벨 미리보기: `src/lib/LabelPreview.tsx`
+- 공통 확인 모달: `src/lib/ConfirmModal.tsx`
 - 라벨 렌더링/비트맵 생성: `src/lib/label.ts`
 - 출력 기록 관리: `src/lib/history.ts`
 - Tauri 프린터 어댑터: `src/lib/printer.ts`
@@ -103,6 +108,14 @@ npm run tauri dev
 ```
 
 이 명령은 Vite 개발 서버와 Tauri 앱을 함께 실행합니다.
+
+프론트엔드 화면만 빠르게 확인하려면:
+
+```sh
+npm run dev
+```
+
+단, `npm run dev`만 실행하면 실제 Bluetooth/Tauri command는 동작하지 않고 브라우저 미리보기 모드로만 확인됩니다. 실제 프린터 연결과 출력은 `npm run tauri dev` 또는 빌드된 `.app`에서 확인하세요.
 
 ## 테스트
 
@@ -183,7 +196,7 @@ DMG까지 만들고 싶으면:
 npx tauri build
 ```
 
-설정상 `app`과 `dmg` 타깃이 활성화되어 있습니다. 다만 로컬 macOS 환경에 따라 Tauri의 DMG 생성 스크립트가 실패할 수 있습니다. 이 경우 `.app` 번들은 정상 생성될 수 있으므로 먼저 `--bundles app`으로 앱 번들을 확인하세요.
+설정상 `app`과 `dmg` 타깃이 활성화되어 있습니다. 로컬 macOS 환경에 따라 Tauri의 DMG 생성 스크립트가 실패할 수 있으므로, 앱 번들만 먼저 확인하려면 `--bundles app`을 사용하세요.
 
 ## macOS Bluetooth 권한
 
@@ -225,6 +238,19 @@ npx tauri build
 출력 전에는 같은 `text`가 기록에 있는지 확인합니다. 라벨 크기가 달라도 같은 이름이면 중복으로 간주하고 출력하지 않습니다.
 
 기록 항목을 클릭하면 입력창과 라벨 크기로 다시 불러옵니다.
+
+## 수동 출력 검증 체크리스트
+
+- D11_H가 Scan 결과에 표시된다.
+- Connect 후 연결 배지에 프린터 이름이 표시된다.
+- 프린터 전원을 끄면 잠시 뒤 앱이 Disconnected 상태로 바뀐다.
+- `12 x 22 mm` 라벨이 정상 출력된다.
+- `12 x 30 mm` 라벨이 정상 출력된다.
+- Quantity `2` 입력 시 같은 라벨이 2장 출력된다.
+- 출력 성공 후 입력창이 비워지고 Quantity가 `1`로 돌아간다.
+- 한글 입력 조합 중 Enter는 출력으로 처리되지 않는다.
+- 같은 이름을 다시 출력하면 중복 모달이 뜨고 출력하지 않는다.
+- 삭제 모달에서 Enter를 누르면 Delete가 실행된다.
 
 ## 문제 해결
 
